@@ -12,15 +12,14 @@
 
 	#ifdef FOG_EXP2
 
-		float fogFactor = exp2( - square( fogDensity ) * square( depth ) * LOG2 );
-		fogFactor = whiteCompliment( fogFactor );
+		float fogFactor = whiteCompliment( exp2( - fogDensity * fogDensity * depth * depth * LOG2 ) );
 
 	#else
 
 		float fogFactor = smoothstep( fogNear, fogFar, depth );
 
 	#endif
-	
-	outgoingLight = mix( outgoingLight, fogColor, fogFactor );
+
+	gl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, fogFactor );
 
 #endif

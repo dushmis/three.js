@@ -1,18 +1,24 @@
+import { Mesh } from './Mesh';
+import { Vector4 } from '../math/Vector4';
+import { Skeleton } from './Skeleton';
+import { Bone } from './Bone';
+import { Matrix4 } from '../math/Matrix4';
+
 /**
  * @author mikael emtinger / http://gomo.se/
  * @author alteredq / http://alteredqualia.com/
  * @author ikerr / http://verold.com
  */
 
-THREE.SkinnedMesh = function ( geometry, material, useVertexTexture ) {
+function SkinnedMesh( geometry, material, useVertexTexture ) {
 
-	THREE.Mesh.call( this, geometry, material );
+	Mesh.call( this, geometry, material );
 
 	this.type = 'SkinnedMesh';
 
 	this.bindMode = "attached";
-	this.bindMatrix = new THREE.Matrix4();
-	this.bindMatrixInverse = new THREE.Matrix4();
+	this.bindMatrix = new Matrix4();
+	this.bindMatrixInverse = new Matrix4();
 
 	// init bones
 
@@ -23,32 +29,19 @@ THREE.SkinnedMesh = function ( geometry, material, useVertexTexture ) {
 
 	if ( this.geometry && this.geometry.bones !== undefined ) {
 
-		var bone, gbone, p, q, s;
+		var bone, gbone;
 
 		for ( var b = 0, bl = this.geometry.bones.length; b < bl; ++ b ) {
 
 			gbone = this.geometry.bones[ b ];
 
-			p = gbone.pos;
-			q = gbone.rotq;
-			s = gbone.scl;
-
-			bone = new THREE.Bone( this );
+			bone = new Bone( this );
 			bones.push( bone );
 
 			bone.name = gbone.name;
-			bone.position.set( p[ 0 ], p[ 1 ], p[ 2 ] );
-			bone.quaternion.set( q[ 0 ], q[ 1 ], q[ 2 ], q[ 3 ] );
-
-			if ( s !== undefined ) {
-
-				bone.scale.set( s[ 0 ], s[ 1 ], s[ 2 ] );
-
-			} else {
-
-				bone.scale.set( 1, 1, 1 );
-
-			}
+			bone.position.fromArray( gbone.pos );
+			bone.quaternion.fromArray( gbone.rotq );
+			if ( gbone.scl !== undefined ) bone.scale.fromArray( gbone.scl );
 
 		}
 
@@ -56,7 +49,8 @@ THREE.SkinnedMesh = function ( geometry, material, useVertexTexture ) {
 
 			gbone = this.geometry.bones[ b ];
 
-			if ( gbone.parent !== - 1 ) {
+			if ( gbone.parent !== - 1 && gbone.parent !== null &&
+					bones[ gbone.parent ] !== undefined ) {
 
 				bones[ gbone.parent ].add( bones[ b ] );
 
@@ -73,98 +67,124 @@ THREE.SkinnedMesh = function ( geometry, material, useVertexTexture ) {
 	this.normalizeSkinWeights();
 
 	this.updateMatrixWorld( true );
-	this.bind( new THREE.Skeleton( bones, undefined, useVertexTexture ) );
+	this.bind( new Skeleton( bones, undefined, useVertexTexture ), this.matrixWorld );
 
-};
+}
 
 
-THREE.SkinnedMesh.prototype = Object.create( THREE.Mesh.prototype );
-THREE.SkinnedMesh.prototype.constructor = THREE.SkinnedMesh;
+SkinnedMesh.prototype = Object.assign( Object.create( Mesh.prototype ), {
 
-THREE.SkinnedMesh.prototype.bind = function( skeleton, bindMatrix ) {
+	constructor: SkinnedMesh,
 
-	this.skeleton = skeleton;
+	isSkinnedMesh: true,
 
-	if ( bindMatrix === undefined ) {
+	bind: function( skeleton, bindMatrix ) {
 
-		this.updateMatrixWorld( true );
+		this.skeleton = skeleton;
 
-		bindMatrix = this.matrixWorld;
+		if ( bindMatrix === undefined ) {
 
-	}
+			this.updateMatrixWorld( true );
 
-	this.bindMatrix.copy( bindMatrix );
-	this.bindMatrixInverse.getInverse( bindMatrix );
+			this.skeleton.calculateInverses();
 
-};
+			bindMatrix = this.matrixWorld;
 
-THREE.SkinnedMesh.prototype.pose = function () {
+		}
 
-	this.skeleton.pose();
+		this.bindMatrix.copy( bindMatrix );
+		this.bindMatrixInverse.getInverse( bindMatrix );
 
-};
+	},
 
-THREE.SkinnedMesh.prototype.normalizeSkinWeights = function () {
+	pose: function () {
 
-	if ( this.geometry instanceof THREE.Geometry ) {
+		this.skeleton.pose();
 
-		for ( var i = 0; i < this.geometry.skinIndices.length; i ++ ) {
+	},
 
-			var sw = this.geometry.skinWeights[ i ];
+	normalizeSkinWeights: function () {
 
-			var scale = 1.0 / sw.lengthManhattan();
+		if ( (this.geometry && this.geometry.isGeometry) ) {
 
-			if ( scale !== Infinity ) {
+			for ( var i = 0; i < this.geometry.skinWeights.length; i ++ ) {
 
-				sw.multiplyScalar( scale );
+				var sw = this.geometry.skinWeights[ i ];
 
-			} else {
+				var scale = 1.0 / sw.lengthManhattan();
 
-				sw.set( 1 ); // this will be normalized by the shader anyway
+				if ( scale !== Infinity ) {
+
+					sw.multiplyScalar( scale );
+
+				} else {
+
+					sw.set( 1, 0, 0, 0 ); // do something reasonable
+
+				}
+
+			}
+
+		} else if ( (this.geometry && this.geometry.isBufferGeometry) ) {
+
+			var vec = new Vector4();
+
+			var skinWeight = this.geometry.attributes.skinWeight;
+
+			for ( var i = 0; i < skinWeight.count; i ++ ) {
+
+				vec.x = skinWeight.getX( i );
+				vec.y = skinWeight.getY( i );
+				vec.z = skinWeight.getZ( i );
+				vec.w = skinWeight.getW( i );
+
+				var scale = 1.0 / vec.lengthManhattan();
+
+				if ( scale !== Infinity ) {
+
+					vec.multiplyScalar( scale );
+
+				} else {
+
+					vec.set( 1, 0, 0, 0 ); // do something reasonable
+
+				}
+
+				skinWeight.setXYZW( i, vec.x, vec.y, vec.z, vec.w );
 
 			}
 
 		}
 
-	} else {
+	},
 
-		// skinning weights assumed to be normalized for THREE.BufferGeometry
+	updateMatrixWorld: function( force ) {
 
-	}
+		Mesh.prototype.updateMatrixWorld.call( this, true );
 
-};
+		if ( this.bindMode === "attached" ) {
 
-THREE.SkinnedMesh.prototype.updateMatrixWorld = function( force ) {
+			this.bindMatrixInverse.getInverse( this.matrixWorld );
 
-	THREE.Mesh.prototype.updateMatrixWorld.call( this, true );
+		} else if ( this.bindMode === "detached" ) {
 
-	if ( this.bindMode === "attached" ) {
+			this.bindMatrixInverse.getInverse( this.bindMatrix );
 
-		this.bindMatrixInverse.getInverse( this.matrixWorld );
+		} else {
 
-	} else if ( this.bindMode === "detached" ) {
+			console.warn( 'THREE.SkinnedMesh unrecognized bindMode: ' + this.bindMode );
 
-		this.bindMatrixInverse.getInverse( this.bindMatrix );
+		}
 
-	} else {
+	},
 
-		THREE.warn( 'THREE.SkinnedMesh unreckognized bindMode: ' + this.bindMode );
+	clone: function() {
 
-	}
-
-};
-
-THREE.SkinnedMesh.prototype.clone = function( object ) {
-
-	if ( object === undefined ) {
-
-		object = new THREE.SkinnedMesh( this.geometry, this.material, this.useVertexTexture );
+		return new this.constructor( this.geometry, this.material, this.skeleton.useVertexTexture ).copy( this );
 
 	}
 
-	THREE.Mesh.prototype.clone.call( this, object );
+} );
 
-	return object;
 
-};
-
+export { SkinnedMesh };

@@ -1,27 +1,32 @@
+import { Quaternion } from './Quaternion';
+import { Vector3 } from './Vector3';
+import { Matrix4 } from './Matrix4';
+import { _Math } from './Math';
+
 /**
  * @author mrdoob / http://mrdoob.com/
  * @author WestLangley / http://github.com/WestLangley
- * @author bhouston / http://exocortex.com
+ * @author bhouston / http://clara.io
  */
 
-THREE.Euler = function ( x, y, z, order ) {
+function Euler( x, y, z, order ) {
 
 	this._x = x || 0;
 	this._y = y || 0;
 	this._z = z || 0;
-	this._order = order || THREE.Euler.DefaultOrder;
+	this._order = order || Euler.DefaultOrder;
 
-};
+}
 
-THREE.Euler.RotationOrders = [ 'XYZ', 'YZX', 'ZXY', 'XZY', 'YXZ', 'ZYX' ];
+Euler.RotationOrders = [ 'XYZ', 'YZX', 'ZXY', 'XZY', 'YXZ', 'ZYX' ];
 
-THREE.Euler.DefaultOrder = 'XYZ';
+Euler.DefaultOrder = 'XYZ';
 
-THREE.Euler.prototype = {
+Euler.prototype = {
 
-	constructor: THREE.Euler,
+	constructor: Euler,
 
-	_x: 0, _y: 0, _z: 0, _order: THREE.Euler.DefaultOrder,
+	isEuler: true,
 
 	get x () {
 
@@ -88,6 +93,12 @@ THREE.Euler.prototype = {
 
 	},
 
+	clone: function () {
+
+		return new this.constructor( this._x, this._y, this._z, this._order );
+
+	},
+
 	copy: function ( euler ) {
 
 		this._x = euler._x;
@@ -103,7 +114,7 @@ THREE.Euler.prototype = {
 
 	setFromRotationMatrix: function ( m, order, update ) {
 
-		var clamp = THREE.Math.clamp;
+		var clamp = _Math.clamp;
 
 		// assumes the upper 3x3 of m is a pure rotation matrix (i.e, unscaled)
 
@@ -212,7 +223,7 @@ THREE.Euler.prototype = {
 
 		} else {
 
-			THREE.warn( 'THREE.Euler: .setFromRotationMatrix() given unsupported order: ' + order )
+			console.warn( 'THREE.Euler: .setFromRotationMatrix() given unsupported order: ' + order );
 
 		}
 
@@ -228,13 +239,13 @@ THREE.Euler.prototype = {
 
 		var matrix;
 
-		return function ( q, order, update ) {
+		return function setFromQuaternion( q, order, update ) {
 
-			if ( matrix === undefined ) matrix = new THREE.Matrix4();
+			if ( matrix === undefined ) matrix = new Matrix4();
+
 			matrix.makeRotationFromQuaternion( q );
-			this.setFromRotationMatrix( matrix, order, update );
 
-			return this;
+			return this.setFromRotationMatrix( matrix, order, update );
 
 		};
 
@@ -250,12 +261,13 @@ THREE.Euler.prototype = {
 
 		// WARNING: this discards revolution information -bhouston
 
-		var q = new THREE.Quaternion();
+		var q = new Quaternion();
 
-		return function ( newOrder ) {
+		return function reorder( newOrder ) {
 
 			q.setFromEuler( this );
-			this.setFromQuaternion( q, newOrder );
+
+			return this.setFromQuaternion( q, newOrder );
 
 		};
 
@@ -291,6 +303,7 @@ THREE.Euler.prototype = {
 		array[ offset + 3 ] = this._order;
 
 		return array;
+
 	},
 
 	toVector3: function ( optionalResult ) {
@@ -301,7 +314,7 @@ THREE.Euler.prototype = {
 
 		} else {
 
-			return new THREE.Vector3( this._x, this._y, this._z );
+			return new Vector3( this._x, this._y, this._z );
 
 		}
 
@@ -315,12 +328,9 @@ THREE.Euler.prototype = {
 
 	},
 
-	onChangeCallback: function () {},
-
-	clone: function () {
-
-		return new THREE.Euler( this._x, this._y, this._z, this._order );
-
-	}
+	onChangeCallback: function () {}
 
 };
+
+
+export { Euler };

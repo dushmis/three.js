@@ -2,9 +2,10 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
-		<script src="../../list.js"></script>
-		<script src="../../page.js"></script>
-		<link type="text/css" rel="stylesheet" href="../../page.css" />
+		<base href="../../" />
+		<script src="list.js"></script>
+		<script src="page.js"></script>
+		<link type="text/css" rel="stylesheet" href="page.css" />
 	</head>
 	<body>
 		<h1>[name]</h1>
@@ -79,6 +80,11 @@
 		Whether to have depth test enabled when rendering this material. Default is *true*.
 		</div>
 
+		<h3>[property:Integer depthFunc]</h3>
+		<div>
+		What depth function to use. Default is [page:Materials THREE.LessEqualDepth].
+		</div>
+
 		<h3>[property:Boolean depthWrite]</h3>
 		<div>
 		Whether rendering this material has any effect on the depth buffer. Default is *true*.
@@ -105,6 +111,17 @@
 		<h3>[property:Number alphaTest]</h3>
 		<div>
 		Sets the alpha value to be used when running an alpha test. Default is *0*.
+		</div>
+
+		<h3>[property:Array clippingPlanes]</h3>
+
+		<div>
+		User-defined clipping planes specified as THREE.Plane objects in world space. These planes apply to the objects this material is attached to. Points in space whose dot product with the plane is negative are cut away. Default is null.
+		</div>
+
+		<h3>[property:Boolean clipShadows]</h3>
+		<div>
+		Defines whether to clip shadows according to the clipping planes specified on this material. Default is false.
 		</div>
 
 		<h3>[property:Float overdraw]</h3>
@@ -138,7 +155,7 @@
 		
 		<h3>[page:EventDispatcher EventDispatcher] methods are available on this class.</h3>
 		
-		<h3>[method:Material clone]([page:material material])</h3>
+		<h3>[method:Material clone]( [page:material material] )</h3>
 		<div>
 		material -- this material gets the cloned information (optional). 
 		</div>
@@ -148,10 +165,10 @@
 
 		<h3>[method:null dispose]()</h3>
 		<div>
-		This disposes the material.
+		This disposes the material. Textures of a material don't get disposed. These needs to be disposed by [page:Texture Texture]. 
 		</div>
 
-		<h3>[method:null setValues]([page:object values])</h3>
+		<h3>[method:null setValues]( [page:object values] )</h3>
 		<div>
 		values -- a container with parameters.
 		</div>

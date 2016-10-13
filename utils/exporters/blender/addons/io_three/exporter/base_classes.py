@@ -14,6 +14,7 @@ class BaseClass(constants.BASE_DICT):
         self._parent = parent
 
         constants.BASE_DICT.update(self, self._defaults.copy())
+        BaseClass._defaults = {}
 
     def __setitem__(self, key, value):
         if not isinstance(value, constants.VALID_DATA_TYPES):
@@ -56,6 +57,7 @@ class BaseClass(constants.BASE_DICT):
 
         """
         data = {}
+
         def _dict_copy(old, new):
             """Recursive function for processing all values
 
@@ -88,7 +90,7 @@ class BaseNode(BaseClass):
             self[constants.UUID] = utilities.id()
         else:
             self[constants.NAME] = node
-            self[constants.UUID] = utilities.id_from_name(node)
+            self[constants.UUID] = utilities.id()
 
         if isinstance(parent, BaseScene):
             scene = parent
